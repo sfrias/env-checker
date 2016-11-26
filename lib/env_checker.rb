@@ -19,33 +19,11 @@ module EnvChecker
     end
 
     def cli_configure_and_check(options)
-      run_configure_and_check(options) && options[:run] &&
-        exit(system(options[:run]))
-
-      exit(true)
+      self.configurations = create_config_from_parameters(options)
+      after_configure_and_check
     end
 
     private
-
-    def run_configure_and_check(options)
-      return true if !options[:optional_variables] &&
-                     !options[:required_variables] &&
-                     !options[:config_file]
-
-      self.configurations = create_config_from_parameters(options)
-
-      begin
-        unless after_configure_and_check
-          exit(options[:run] ? system(options[:run]) : 1)
-        end
-      rescue EnvChecker::MissingKeysError
-        exit 2
-      rescue EnvChecker::ConfigurationError
-        exit 3
-      end
-
-      true
-    end
 
     def after_configure_and_check
       environments_to_check = %w(global)

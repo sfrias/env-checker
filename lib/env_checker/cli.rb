@@ -1,6 +1,31 @@
 require 'thor'
 
 module EnvChecker
+  class Parameters
+    class << self
+      def parse_options(options)
+        my_options = {}
+
+        (%w(config_file run) + Configuration::ATTRIBUTES).each do |v|
+          env_var_name = "env_checker_#{v}".upcase
+          if ENV[env_var_name]
+            my_options[v.to_sym] ||= if env_var_name.include?('_VARIABLES')
+                                       ENV[env_var_name]
+                                         .split(' ')
+                                         .map { |elem| elem.split(',') }
+                                         .flatten
+                                     else
+                                       ENV[env_var_name]
+                                     end
+          end
+          my_options[v.to_sym] = options[v.to_sym] if options[v.to_sym]
+        end
+
+        my_options
+      end
+    end
+  end
+
   class CLI < Thor
     desc 'version', 'EnvChecker version.'
     def version
@@ -18,28 +43,24 @@ module EnvChecker
     desc 'check', 'Check optional and required environment variables.'
     def check
       output = %w(Variables:)
-      variables = %w(config_file run)
 
-      my_options = {}
-      (variables + Configuration::ATTRIBUTES).each do |v|
-        env_var_name = "env_checker_#{v}".upcase
-        if ENV[env_var_name]
-          my_options[v.to_sym] ||= if env_var_name.include?('_VARIABLES')
-                                     ENV[env_var_name]
-                                       .split(' ')
-                                       .map { |elem| elem.split(',') }
-                                       .flatten
-                                   else
-                                     ENV[env_var_name]
-                                   end
+      my_options = Parameters.parse_options(options)
+      output += my_options.map { |k, v| "- #{k}: #{v}" }
+      puts output.sort.join("\n") if options[:verbose]
+
+      result = 0
+      if options[:optional_variables] || options[:required_variables] ||
+         options[:config_file]
+        begin
+          result = 1 unless EnvChecker.cli_configure_and_check(my_options)
+        rescue EnvChecker::MissingKeysError
+          exit 2
+        rescue EnvChecker::ConfigurationError
+          exit 3
         end
-        my_options[v.to_sym] = options[v.to_sym] if options[v.to_sym]
-        output << "- #{v}: #{my_options[v.to_sym]}" if my_options[v.to_sym]
       end
 
-      puts output.join("\n") if options[:verbose]
-
-      EnvChecker.cli_configure_and_check(my_options)
+      exit(options[:run] ? system(options[:run]) : result)
     end
   end
 end
