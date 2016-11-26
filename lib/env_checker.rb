@@ -15,7 +15,7 @@ module EnvChecker
       self.configurations ||= {}
       configurations['global'] = Configuration.new
       yield(configurations['global'])
-      after_configure_and_check(configurations)
+      after_configure_and_check
     end
 
     def cli_configure_and_check(options)
@@ -35,7 +35,7 @@ module EnvChecker
       self.configurations = create_config_from_parameters(options)
 
       begin
-        unless after_configure_and_check(configurations)
+        unless after_configure_and_check
           exit(options[:run] ? system(options[:run]) : 1)
         end
       rescue EnvChecker::MissingKeysError
@@ -47,7 +47,7 @@ module EnvChecker
       true
     end
 
-    def after_configure_and_check(configurations)
+    def after_configure_and_check
       environments_to_check = %w(global)
 
       current_env = configurations['global'].environment
@@ -58,8 +58,7 @@ module EnvChecker
       environments_to_check.map do |env|
         configurations[env].after_initialize
 
-        check_optional_variables(env, configurations) &
-          check_required_variables(env, configurations)
+        check_optional_variables(env) & check_required_variables(env)
       end.reduce(:&)
     end
 
@@ -93,7 +92,7 @@ module EnvChecker
       end
     end
 
-    def check_optional_variables(env, configurations)
+    def check_optional_variables(env)
       missing_keys = missing_keys_env(configurations[env].optional_variables)
       return true if missing_keys.empty?
 
@@ -107,7 +106,7 @@ module EnvChecker
       false
     end
 
-    def check_required_variables(env, configurations)
+    def check_required_variables(env)
       missing_keys = missing_keys_env(configurations[env].required_variables)
       return true if missing_keys.empty?
 
