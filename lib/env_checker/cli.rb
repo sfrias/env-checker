@@ -8,26 +8,20 @@ module EnvChecker
       EnvChecker::VERSION
     end
 
-    option :environment, :aliases => :e, :type => :string
-    option :config_file, :aliases => :cf, :type => :string
-    option :required_variables, :aliases => [:r, :required], :type => :array
-    option :optional_variables, :aliases => [:o, :optional], :type => :array
-    option :slack_webhook_url, :aliases => :slack, :type => :string
-    option :verbose, :aliases => :v, :type => :boolean, :default => false
-    option :run, :type => :string
+    option :environment, aliases: :e, type: :string
+    option :config_file, aliases: :cf, type: :string
+    option :required_variables, aliases: [:r, :required], type: :array
+    option :optional_variables, aliases: [:o, :optional], type: :array
+    option :slack_webhook_url, aliases: :slack, type: :string
+    option :verbose, aliases: :v, type: :boolean, default: false
+    option :run, type: :string
     desc 'check', 'Check optional and required environment variables.'
     def check
       output = %w(Variables:)
-
-      variables = %w(config_file
-                     slack_webhook_url
-                     environment
-                     run
-                     optional_variables
-                     required_variables)
+      variables = %w(config_file run)
 
       my_options = {}
-      variables.each do |v|
+      (variables + Configuration::ATTRIBUTES).each do |v|
         env_var_name = "env_checker_#{v}".upcase
         if ENV[env_var_name]
           my_options[v.to_sym] ||= if env_var_name.include?('_VARIABLES')

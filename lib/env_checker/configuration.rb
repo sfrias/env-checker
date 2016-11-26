@@ -6,9 +6,12 @@ module EnvChecker
   class ConfigurationError < StandardError; end
 
   class Configuration
-    attr_accessor :required_variables, :optional_variables, :logger,
-                  :environment, :slack_webhook_url, :slack_notifier,
-                  :environments
+    ATTRIBUTES = %w(required_variables optional_variables environment
+                    slack_webhook_url environments).freeze
+    OBJECTS = %w(logger slack_notifier).freeze
+
+    attr_accessor *ATTRIBUTES.map(&:to_sym)
+    attr_accessor *OBJECTS.map(&:to_sym)
 
     # Has default settings, which can be overridden in the initializer.
     def initialize
@@ -41,15 +44,18 @@ module EnvChecker
 
     def valid?
       if required_variables && required_variables.class != Array
-        raise ConfigurationError.new("Invalid value required_variables: #{required_variables}")
+        raise ConfigurationError,
+              "Invalid value required_variables: #{required_variables}"
       end
 
       if optional_variables && optional_variables.class != Array
-        raise ConfigurationError.new("Invalid value optional_variables: #{optional_variables}")
+        raise ConfigurationError,
+              "Invalid value optional_variables: #{optional_variables}"
       end
 
       unless valid_url?(slack_webhook_url)
-        raise ConfigurationError.new("Invalid value slack_webhook_url: #{slack_webhook_url}")
+        raise ConfigurationError,
+              "Invalid value slack_webhook_url: #{slack_webhook_url}"
       end
 
       true
