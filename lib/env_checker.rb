@@ -69,34 +69,28 @@ module EnvChecker
       if options[:config_file]
         from_file = YAML.load_file(options[:config_file])
 
-        configurations = config_from_file('global', from_file)
+        options_to_config(configurations['global'], from_file)
         if configurations['global'].environments.any?
           configurations['global'].environments.each do |env|
-            configurations
-              .merge!(config_from_file(env, from_file[env]))
+            configurations[env] = Configuration.new
+            options_to_config(configurations[env], from_file[env] || {})
           end
         end
       end
 
       # Override parameters with CLI
-      Configuration::ATTRIBUTES.each do |a|
-        options[a.to_sym] &&
-          configurations['global'].public_send("#{a}=", options[a.to_sym])
-      end
-
+      options_to_config(configurations['global'], options || {})
       configurations
     end
 
-    def config_from_file(name, from_file)
-      return { name => Configuration.new } unless from_file
-
-      config = Configuration.new
+    def options_to_config(configuration, options)
       Configuration::ATTRIBUTES.each do |a|
-        from_file[a] &&
-          config.public_send("#{a}=", from_file[a])
-      end
+        options[a] &&
+          configuration.public_send("#{a}=", options[a])
 
-      { name => config }
+        options[a.to_sym] &&
+          configuration.public_send("#{a}=", options[a.to_sym])
+      end
     end
 
     def check_optional_variables(env, configurations)
